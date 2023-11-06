@@ -32,7 +32,8 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
 
-        const roomCollection = client.db('hotelDB').collection('allroom')
+        const roomCollection = client.db('hotelDB').collection('allRoom')
+        const bookingCollection = client.db('hotelDB').collection('booking')
 
         app.get('/rooms', async (req, res) => {
             const cursor = roomCollection.find();
@@ -45,6 +46,60 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await roomCollection.findOne(query)
+            res.send(result)
+        })
+
+
+        // user api 
+
+        app.get('/bookings', async (req, res) => {
+            let query = {}
+            if (req.query?.email) {
+                query = { email: req.query.email }
+            }
+            const result = await bookingCollection.find(query).toArray();
+            res.send(result)
+        })
+
+
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            const result = await bookingCollection.insertOne(booking);
+            res.send(result)
+
+        })
+
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await bookingCollection.findOne(query)
+            res.send(result)
+        })
+
+        app.put('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true };
+            const updatedDate = req.body
+            const date = {
+                $set: {
+                    date: updatedDate.date
+                }
+            }
+            const result = await bookingCollection.updateOne(filter, date, options);
+            res.send(result)
+        })
+
+
+
+
+
+
+        app.delete('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: new ObjectId(id) }
+            const result = await bookingCollection.deleteOne(query)
             res.send(result)
         })
 

@@ -1,5 +1,6 @@
 const express = require('express')
 require('dotenv').config()
+const jwt = require('jsonwebtoken');
 const cors = require("cors")
 const app = express()
 const port = process.env.PORT || 4100
@@ -36,6 +37,19 @@ async function run() {
         const bookingCollection = client.db('hotelDB').collection('booking')
         const reviewCollection = client.db('hotelDB').collection('review')
 
+
+        // Auth Related API
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            console.log(user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send(token)
+        })
+
+
+
+
+
         app.get('/rooms', async (req, res) => {
             const cursor = roomCollection.find();
             const result = await cursor.toArray();
@@ -49,32 +63,6 @@ async function run() {
             res.send(result)
 
         })
-
-        // app.put('/rooms/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const filter = { _id: new ObjectId(id) }
-        //     const options = { upsert: true };
-        //     const updatedReview = req.body
-        //     const review = {
-        //         $set: {
-        //             rating: updatedReview.rating,
-        //             comment: updatedReview.comment,
-        //             timeSpend: updatedReview.timeSpend,
-        //         }
-        //     }
-        //     const result = await roomCollection.updateOne(filter, review, options);
-        //     res.send(result)
-        // })
-
-
-        // app.get('/rooms/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const query = { _id: new ObjectId(id) }
-        //     const result = await roomCollection.findOne(query)
-        //     res.send(result)
-        // })
-
-
 
 
 

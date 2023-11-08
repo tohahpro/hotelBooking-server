@@ -12,8 +12,8 @@ const port = process.env.PORT || 4100
 app.use(express.json());
 app.use(cors({
     origin: [
-        // 'http://localhost:5173',
-        'https://hotelroomhpro.netlify.app'
+
+        'https://hotelroombooking10.netlify.app'
     ],
     credentials: true
 }))

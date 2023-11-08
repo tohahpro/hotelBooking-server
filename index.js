@@ -12,8 +12,8 @@ const port = process.env.PORT || 4100
 app.use(express.json());
 app.use(cors({
     origin: [
-        'http://localhost:5173',
-        'https://hotel-booking100.netlify.app'
+        // 'http://localhost:5173',
+        'https://hotelroomhpro.netlify.app'
     ],
     credentials: true
 }))
@@ -63,10 +63,6 @@ const verifyToken = async (req, res, next) => {
 }
 
 
-
-
-
-
 async function run() {
     try {
         const roomCollection = client.db('hotelDB').collection('allRoom')
@@ -100,10 +96,6 @@ async function run() {
                 secure: true
             }).send({ success: true });
         })
-
-
-
-
 
         app.get('/rooms', async (req, res) => {
             const cursor = roomCollection.find();

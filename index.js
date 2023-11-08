@@ -1,16 +1,21 @@
 const express = require('express')
 require('dotenv').config()
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
 const cors = require("cors")
+const cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken')
+
+
 const app = express()
 const port = process.env.PORT || 4100
 
 
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:5173'],
-    credentials: true,
+    origin: [
+        'http://localhost:5173',
+        'https://hotel-booking100.netlify.app'
+    ],
+    credentials: true
 }))
 app.use(cookieParser())
 
@@ -32,49 +37,55 @@ const client = new MongoClient(uri, {
     }
 });
 
+
+// middlewares 
+const logger = async (req, res, next) => {
+    console.log('called', req.host, req.url);
+    next();
+}
+
+
+const verifyToken = async (req, res, next) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).send({ message: 'Not authorized' })
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        //  error
+        if (err) {
+            return res.status(401).send({ message: 'Unauthorized' })
+        }
+        // If token is valid then it would be decoded
+        req.user = decoded;
+        next();
+    })
+
+}
+
+
+
+
+
+
 async function run() {
     try {
-        // Connect the client to the server	(optional starting in v4.7)
-        // await client.connect();
-
         const roomCollection = client.db('hotelDB').collection('allRoom')
         const bookingCollection = client.db('hotelDB').collection('booking')
         const reviewCollection = client.db('hotelDB').collection('review')
 
 
-        const logger = async (req, res, next) => {
-            console.log('log: info', req.host, req.url);
-            next();
-        }
-
-
-        const verifyToken = async (req, res, next) => {
-            const token = req.cookies?.token;
-            if (!token) {
-                return res.status(401).send({ message: 'Not authorized' })
-            }
-            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-                //  error
-                if (err) {
-                    return res.status(401).send({ message: 'Unauthorized' })
-                }
-                // If token is valid then it would be decoded
-                req.user = decoded;
-                next();
-            })
-        }
-
-
 
         // Auth Related API
-        app.post('/jwt', logger, async (req, res) => {
+        app.post('/jwt', async (req, res) => {
             const user = req.body;
+            console.log(user);
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false,
-                    // sameSite: 'none',
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
                 })
                 .send({ success: true })
         })
@@ -83,7 +94,11 @@ async function run() {
         app.post('/logout', async (req, res) => {
             const user = req.body;
             console.log(user);
-            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+            res.clearCookie('token', {
+                maxAge: 0,
+                sameSite: "none",
+                secure: true
+            }).send({ success: true });
         })
 
 
@@ -108,13 +123,10 @@ async function run() {
 
         // user api 
 
-        app.get('/bookings', verifyToken, async (req, res) => {
-            // console.log('Cook Cookies', req.cookies);
-            // console.log('User from the valid token', req.user);
+        app.get('/bookings', logger, verifyToken, async (req, res) => {
             if (req.query.email !== req.user.email) {
                 return res.status(403).send({ message: 'Forbidden access!' })
             }
-
 
             let query = {}
             if (req.query?.email) {
@@ -132,12 +144,6 @@ async function run() {
 
         })
 
-        app.get('/bookings/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const result = await bookingCollection.findOne(query)
-            res.send(result)
-        })
 
         app.put('/bookings/:id', async (req, res) => {
             const id = req.params.id;
@@ -154,10 +160,6 @@ async function run() {
         })
 
 
-
-
-
-
         app.delete('/bookings/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id);
@@ -167,12 +169,9 @@ async function run() {
         })
 
 
-        // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
-        // await client.close();
+
     }
 }
 run().catch(console.dir);

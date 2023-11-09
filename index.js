@@ -12,7 +12,6 @@ const port = process.env.PORT || 4100
 app.use(express.json());
 app.use(cors({
     origin: [
-
         'https://hotelroombooking10.netlify.app'
     ],
     credentials: true
@@ -98,7 +97,16 @@ async function run() {
         })
 
         app.get('/rooms', async (req, res) => {
-            const cursor = roomCollection.find();
+            const filter = req.query;
+            console.log(filter);
+            const query = {};
+            const options = {
+                sort: {
+                    price: filter.sort === 'asc' ? 1 : -1
+                }
+            };
+
+            const cursor = roomCollection.find(query, options);
             const result = await cursor.toArray();
             res.send(result)
         })
